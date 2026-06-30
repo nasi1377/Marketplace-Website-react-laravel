@@ -1,0 +1,359 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Product;
+use App\Models\ProductComment;
+use App\Models\ProductOrder;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use PayPing\PayPingException;
+use Illuminate\Support\Facades\Auth;
+use App\Traits\Sms;
+
+class ProductController extends Controller
+{
+    use Sms;
+
+    public function products()
+    {
+        $products = Product::orderBy('id', 'DESC')->paginate(10);
+        $vip_products = Product::whereVip(1)->orderBy('id', 'DESC')->paginate(5);
+        return view('products', compact('products', 'vip_products'));
+    }
+
+    public function shopCart(Request $request)
+    {
+        $cart = [];
+        if($request->cookie('cart')) {
+            $cart = json_decode($request->cookie('cart'), true);
+        }
+        return view('shop-cart', compact('cart'));
+    }
+
+    public function shopCartRemove($slug, Request $request)
+    {
+        $cart = [];
+        if($request->cookie('cart')) {
+            
+            $cart = json_decode($request->cookie('cart'), true);
+            unset($cart[$slug]);
+
+        }
+
+        return back()->withCookie(cookie('cart', json_encode($cart), 120));
+    }
+
+    public function cartPayment(Request $request)
+    {
+        $cart = [];
+        $totalPrice = 0;
+        $orders_ids = '';
+        if($request->cookie('cart')) {
+            $cart = json_decode($request->cookie('cart'), true);
+            if(count($cart)) {
+                $first = true;
+                foreach ($cart as $item) {
+                    $product = Product::where('id', $item['product_id'])->first();
+                    $id_order = ProductOrder::insertGetId([
+                        'author_id' => Auth::id(),
+                        'product_id' => $item['product_id'],
+                        'count' => $item['count'],
+                        'weight' => $item['weight'],
+                        'price' => $product->price,
+                        'created_at' => Carbon::now()
+                    ]);
+                    if($first) {
+                        $orders_ids = $id_order;
+                        $first = false;
+                    } else {
+                        $orders_ids .= '-' . $id_order;
+                    }
+
+                    
+                    $totalPrice +=  ( $item['count'] * $item['weight'])* $product->price ;
+                    
+                    //$send_price = ((int) setting('site.sendprice')) * ( $item['count'] * $item['weight']);
+
+                    $send_price = ((int) setting('site.sendprice')) +  (  $item['count'] * $item['weight'] ) * 3000;
+
+
+                    $totalPrice +=$send_price;
+
+                }
+            }
+        }
+
+           // $send_price = (int) setting('site.sendprice');
+          //  $totalPrice +=   $send_price;
+
+        $cookie = \Cookie::forget('cart');
+        return $this->payment($totalPrice,$orders_ids)->withCookie($cookie);
+        
+
+////////////
+
+        // $orders_ids_ = explode("-", $orders_ids); 
+
+        // $points = 0;
+   
+        // foreach($orders_ids_ as $order_id) {
+
+        //     $order = ProductOrder::find(intval($order_id));
+        //     $order->status = 'PROCESSED';
+        //     $order->save();
+
+        //     $product = Product::find($order->product_id);
+
+        //     $points += $product->point * ($this->getPoint($order->weight)* $order->count);
+           
+        // }
+
+        // if($points >0){
+        //     $user = Auth::user();
+        //  ///////////////////////when completed payment////////////////////////////////////// 
+        //  if(!$user->checkExist()){
+        //     if($user->inviter != null) {
+        //       $res = $user->setSubRelation( $user->inviter, $user->id,$points);
+        //       $user->updateScoreDb($points);   
+        //     }else
+        //     {
+        //       $user->AddUserWithOutCode($points);
+        //       $user->updateScoreDb($points);  
+        //     }  
+        //     }else{
+        //         $user->updateScore($points);   
+        //         $user->updateScoreDb($points);     
+        //     }
+
+        //     ////////////////////////////////////////////////////////////////////////////////////    
+
+
+
+        // }
+
+///////////////////////
+
+       
+    }
+
+
+    private function payment($totalPrice,$orders_ids){
+
+        $token = "32C75435A1792C0B3B570EE32A99E5CEC49EF1C43B7FAA36217D6EF588FD6855-1";
+
+
+       
+
+        $args = [
+            "amount" => $totalPrice,
+            "payerIdentity" =>(string) Auth::id(),
+            "payerName" => Auth::user()->name,
+            "description" => "توضیحات",
+            "returnUrl" => route('cart.callback'),
+            "clientRefId" => $orders_ids
+        ];
+
+        $payment = new \PayPing\Payment($token);
+
+
+
+        try {
+            $payment->pay($args);
+        } catch (Exception $e) {
+            var_dump($e->getMessage());
+        }
+
+        return redirect($payment->getPayUrl());
+    }
+
+    public function getPoint($w){
+        switch($w){
+            case 2:
+                return 0;
+            case 10:
+                return 1;
+            case 20:
+                return 2;
+            case 30:
+                return 3;
+            case 60:
+                return 6;
+            case 100:
+                return 9;
+        }
+
+        return 0;
+    }
+
+    public function callback(Request $request)
+    {
+        $token = "32C75435A1792C0B3B570EE32A99E5CEC49EF1C43B7FAA36217D6EF588FD6855-1";
+
+        $payment = new \PayPing\Payment($token);
+
+    
+        $order_ids = explode("-", $_GET['clientrefid']); 
+
+        $amount =0;
+        foreach($order_ids as $order_id) {
+            $order = ProductOrder::find(intval($order_id));
+            $amount += $order->price * $order->weight * $order->count;
+
+          //  $send_price = ((int) setting('site.sendprice')) * (  $order->weight * $order->count);
+          
+          
+              $send_price = ((int) setting('site.sendprice')) +  (  $order->weight * $order->count ) * 3000;
+
+
+
+           // $send_price = (int) setting('site.sendprice');
+            $send_price =  $send_price / ( (  $order->type == 'SINGLE' )? 1: 1  ) ;
+
+            $amount +=   $send_price;
+        }
+
+  
+
+         try {
+            if($payment->verify($_GET['refid'], $amount)){
+
+                $points = 0;
+
+                $credit=0;
+                foreach($order_ids as $order_id) {
+                    $order = ProductOrder::find(intval($order_id));
+                    $order->status = 'PROCESSED';
+                    $order->save();
+
+                    $product = Product::find($order->product_id);
+
+                    $points += $product->point * ($this->getPoint($order->weight)* $order->count);
+
+                    if($order->type =="MAJOR"){
+                        $credit +=   ($order->weight * $order->count)*10000;
+                    }
+                   
+                } 
+                
+                $user = Auth::user();
+
+
+
+
+                if($credit >0){
+                  
+                    $user->increment('credit', $credit);
+                }
+                if($points >0){
+
+                  
+                 ///////////////////////when completed payment////////////////////////////////////// 
+                 if(!$user->checkExist()){
+                    if($user->inviter != null) {
+                      $res = $user->setSubRelation( $user->inviter, $user->id,$points);
+                      $user->updateScoreDb($points);   
+                    }else
+                    {
+                      $user->AddUserWithOutCode($points);
+                      $user->updateScoreDb($points);   
+                    }  
+                    }else{
+                        $user->updateScore($points);    
+                        $user->updateScoreDb($points);   
+                    }
+
+                    ////////////////////////////////////////////////////////////////////////////////////    
+
+
+
+                }
+
+                $message="خرید شما با موفقیت انجام شد. در اولین روز کاری برای شما ارسال و تا حداکثر یک هفته آینده به دست شما خواهد رسید. شرکت شالی گستر عطرآگین از اعتماد و حسن انتخاب شما کمال تشکر را دارد.";
+             
+                $this->sendSms($user->mobile, $message);
+
+                return redirect(route('desktop.orders'))->with(['message_success' => 'پرداخت شما با موفقیت انجام شد']);
+            }else{
+                return redirect(route('desktop.orders'))->with(['message_error' => 'خطای در درگاه رخ داد']);
+            }
+        } catch (PayPingException $e) {
+            return redirect(route('desktop.orders'))->with(['message_error' => 'خطایی در درگاه رخ داده، در صورت کسر از حساب طی 72 ساعت مبلغ عودت داده میشود']);
+//            echo $e->getMessage();
+        }catch (Exception $e) {
+            echo $e->getMessage();
+        }
+
+
+    }
+
+    public function productDetails($slug)
+    {
+        $product = Product::whereSlug($slug)->firstOrFail();
+        $properties = explode(PHP_EOL , $product->properties);
+        $comments = ProductComment::whereProductId($product->id)->whereStatus('PUBLISHED')->orderBy('id','DESC')->get();
+        return view('product-details', compact('product', 'properties', 'comments'));
+    }
+
+    public function saveComment($slug, Request $request)
+    {
+        $request->validate([
+            'text' => 'required',
+            'name' => 'required',
+            'email' => 'required|email'
+        ]);
+
+        $product = Product::whereSlug($slug)->firstOrFail();
+        $author_id = Auth::check() ? Auth::id() : null;
+
+        ProductComment::insert([
+            'author_id' => $author_id,
+            'product_id' => $product->id,
+            'name' => $request->name,
+            'email' => $request->email,
+            'text' => $request->text,
+            'created_at' => Carbon::now(),
+        ]);
+
+        return back()->with(['productComment' => 'نظر شما با موفقیت در سیستم ذخیره شد و بعد از تایید ادمین در سایت به نمایش در می آید.']);
+    }
+
+    public function addToCard($slug, Request $request)
+    {
+        if(!Auth::check()) {
+            return redirect("login")->with(['auth_error' => 'برای ثبت سفارش وارد حساب کاربری شوید.']);
+        }
+
+        $cart = [];
+
+        if($request->cookie('cart')) {
+            $cart = json_decode($request->cookie('cart'), true);
+        }
+
+        $product = Product::whereSlug($slug)->first();
+
+        $cart[]  = [
+            'product_id' => $product->id,
+            'count' => $request->count,
+            'weight' => $request->weight
+        ];
+
+        // $product = Product::whereSlug($slug)->first();
+
+        return redirect(route('add.shop.cart'))
+            ->withCookie(cookie('cart', json_encode($cart), 120))
+            ->with(['buy_message_success' => 'سفارش شما با موفقیت به سبد اضافه شد']);
+
+        // ProductOrder::insert([
+        //     'author_id' => Auth::id(),
+        //     'product_id' => $product->id,
+        //     'price' => $product->price * $request->count,
+        //     'weight' => 0,
+        //     'type' => 'SINGLE',
+        //     'status' => 'PENDING',
+        //     'created_at' => Carbon::now()
+        // ]);
+
+        // return back()->with(['buy_message_success' => 'سفارش تکی شما با موفقیت در سیستم ثبت شد.']);
+    }
+}

@@ -1,0 +1,18 @@
+<?php
+
+// در فایل app/Models/Gift.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Gift extends Model
+{
+    protected $fillable = [
+        'user_id', 'title', 'description', 'status', 'value', 'created_at', 'updated_at'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}

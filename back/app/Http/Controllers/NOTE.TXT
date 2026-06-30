@@ -1,0 +1,11 @@
+///////////////////////when completed payment////////////////////////////////////// 
+        if($user->inviter != null) {
+            if(!$user->checkExist())
+            $res = $user->setSubRelation( $user->inviter, $user->id);
+        }else
+        {
+           if(!$user->checkExist())
+           $user->AddUserWithOutCode();
+        }
+////////////////////////////////////////////////////////////////////////////////////    
+      

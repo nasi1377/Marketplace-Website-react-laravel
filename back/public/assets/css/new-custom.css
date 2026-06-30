@@ -1,0 +1,16 @@
+/* استایل موکایی برای لیست محصولات */
+.navbar-link {
+    border: 1px solid #6F4E37 !important; /* رنگ دور باکس */
+    color: #6F4E37 !important;            /* رنگ متن */
+}
+
+/* افکت موقع هاور کردن روی لینک‌ها */
+.navbar-link:hover {
+    background-color: #6F4E37 !important;
+    color: #ffffff !important;
+}
+
+/* اگر می‌خوای آیکون یا متن داخلش هم هماهنگ بشه */
+.navbar-link h6 {
+    color: inherit !important;
+}

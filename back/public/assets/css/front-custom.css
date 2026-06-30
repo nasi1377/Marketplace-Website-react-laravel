@@ -1,0 +1,167 @@
+/* Custom style for Goldis */
+
+#topnav.nav-sticky-new .logo .l-dark {
+    width: 70px;
+    height: 100px;
+}
+
+#topnav .navigation-menu>li {
+    float: right;
+    display: block;
+    position: relative;
+    margin: 20px 10px 0 10px;
+}
+
+@media (min-width: 1400px)
+{
+    .bg-profile .container {
+        max-width: 100% !important;
+    }
+    .container {
+        max-width: 1240px !important;
+    }
+}
+
+.bg-profile .public-profile {
+    top: 0px !important;
+}
+
+.card .card-body {
+}
+
+
+.projects-wrapper {
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+}
+
+
+@media (min-width: 768px)
+{
+    .projects-wrapper .col-md-6 {
+        flex: 0 0 auto;
+        width: 20%;
+    }
+}
+
+
+.bg-primary
+{ background:#fff !important;
+    padding-bottom: 0px !important;
+}
+
+
+
+
+@media (min-width: 900px)
+{
+    .public-profile .text-muted
+    {margin: -80px 20px 0 0 !important;
+    }
+    .mt-60 .col-lg-4 {
+        flex: 0 0 auto;
+        width: 100%;
+        background-image: url(https://www.fonewalls.com/wp-content/uploads/2560x1600-Background-HD-Wallpaper-173.jpg);
+        background-repeat: no-repeat;
+        background-size: cover;
+        border-radius: 10px;
+        margin-bottom: 5px !important;
+    }
+    .mt-60 .col-lg-8 {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+}
+
+.logo-footer
+{display:none;}
+
+
+
+
+.sidebar-nav>.navbar-item a {
+    width: 150px !important;
+    float: right !important;
+    margin: 10px !important;
+    height: 150px !important;
+    background: rgba(256,256,256, 0.8);
+    border-radius: 50% !important;
+    border: 2px solid #6aa103 !important;
+    box-shadow: 5px 5px 15px #bfb6b6 !important;
+    text-align: center !important;
+}
+
+
+.sticky-bar {
+    position: relative;
+    top: 0px;
+    box-shadow: none !important;
+}
+
+.sidebar .pt-2 {
+    display: none;
+}
+
+.sidebar-nav>.navbar-item {
+    padding: 3px 15px;
+    width: 11%;
+    float: right;
+}
+
+
+.d-none {
+    display: block!important;
+}
+
+@media (max-width: 900px)
+{
+    .sidebar-nav>.navbar-item {
+        padding: 3px 15px;
+        width: 33%;
+        float: right;
+    }
+    .mt-60 .col-lg-4 {
+        flex: 0 0 auto;
+        width: 100%;
+        background-image: url(https://www.fonewalls.com/wp-content/uploads/2560x1600-Background-HD-Wallpaper-173.jpg);
+        background-repeat: no-repeat;
+        background-size: cover;
+        border-radius: 10px;
+        margin-bottom: 5px !important;
+    }
+    .sidebar-nav>.navbar-item a {
+        width: 120px !important;
+        float: right !important;
+        margin: 10px !important;
+        height: 120px !important;
+        background: rgba(256,256,256, 0.8);
+        border-radius: 50% !important;
+        border: 2px solid #6aa103 !important;
+        box-shadow: 5px 5px 15px #bfb6b6 !important;
+        text-align: center !important;
+    }
+    h6, .h6 {
+        font-size: 13px !important;
+    }
+    h5, .h5 {
+        font-size: 15px !important;
+    }
+
+
+}
+
+
+/************
+
+
+Afshin
+
+**********/
+
+
+/* #topnav{
+    background-image: url("https://narnid.com/assets/images/bk-head.webp") !important;
+} */
+
+
